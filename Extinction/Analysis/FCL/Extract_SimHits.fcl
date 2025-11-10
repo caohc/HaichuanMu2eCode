@@ -1,0 +1,37 @@
+#include "Offline/fcl/standardServices.fcl"
+#include "Offline/fcl/minimalMessageService.fcl"
+#include "Offline/EventGenerator/fcl/prolog.fcl"
+#include "Production/JobConfig/common/prolog.fcl"
+#include "Production/JobConfig/beam/prolog.fcl"
+
+process_name : ExtSimHits
+
+source: {
+    module_type: RootInput
+}
+
+services: { @table::Services.Core }
+
+physics: {
+    producers: {
+#        @table::CommonMC.producers
+    }
+
+    analyzers: {
+
+        ExtSimHits: {
+            module_type: ExtSimHitDumper
+            hitsInputTag: "g4run:"
+            #TimeOffsets :  { inputs : [ ] }
+        }
+
+    }
+
+  e1 : [ExtSimHits]  
+  end_paths      : [e1]
+}
+
+# services.SeedService.baseSeed         :  8
+# services.SeedService.maxUniqueEngines :  20
+
+services.TFileService.fileName : "ExtSimHits.root"
