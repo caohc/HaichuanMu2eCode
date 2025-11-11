@@ -58,7 +58,6 @@ namespace mu2e {
           float MuonStartPy;
           float MuonStartPz;
 
-
           int ParentPID;
           float ParentStartT;
           float ParentEndT;
@@ -335,15 +334,16 @@ namespace mu2e {
            if(particle.hasParent()) 
 	  {	   
 	   Parent= particle.parent();
-	   std::cout<<"Parent : "<<Parent->pdgId()<<", ("<<
-           Parent->startPosition().x()<<", "<<Parent->startPosition().y()<<", "<<Parent->startPosition().z()<<") " << Parent->startGlobalTime() <<
-	   std::endl; 
+	   
+	   //std::cout<<"Parent : "<<Parent->pdgId()<<", ("<<
+           //Parent->startPosition().x()<<", "<<Parent->startPosition().y()<<", "<<Parent->startPosition().z()<<") " << Parent->startGlobalTime() <<
+	   //std::endl; 
 
            hit_ = MuonStop(event.run(), event.subRun(), event.event(), particle);
 
-           std::cout<<"Parent : "<<hit_.ParentPID<<", ("<<
-           hit_.ParentStartX<<", "<<hit_.ParentStartY<<", "<<hit_.ParentStartZ<<") " << hit_.ParentStartT<<
-           std::endl;
+           //std::cout<<"Parent : "<<hit_.ParentPID<<", ("<<
+           //hit_.ParentStartX<<", "<<hit_.ParentStartY<<", "<<hit_.ParentStartZ<<") " << hit_.ParentStartT<<
+           //std::endl;
 
 	   nt_->Fill();
           }
