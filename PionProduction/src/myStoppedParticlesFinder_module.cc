@@ -45,7 +45,7 @@ namespace mu2e {
           int SubRunID;
           long long EventID;
 
-          long long MuonPID;
+          int MuonPID;
           float MuonStartT;
           float MuonEndT;
           float MuonStartX;
@@ -54,8 +54,12 @@ namespace mu2e {
           float MuonEndX;
           float MuonEndY;
           float MuonEndZ;
+          float MuonStartPx;
+          float MuonStartPy;
+          float MuonStartPz;
 
-          long long ParentPID;
+
+          int ParentPID;
           float ParentStartT;
           float ParentEndT;
           float ParentStartX;
@@ -64,14 +68,23 @@ namespace mu2e {
           float ParentEndX;
           float ParentEndY;
           float ParentEndZ;
-	  
+          float ParentStartPx;
+          float ParentStartPy;
+          float ParentStartPz;
+          float ParentEndPx;
+          float ParentEndPy;
+          float ParentEndPz;
+
     MuonStop() :  RunID(-1), SubRunID(-1), EventID(-1)
           , MuonPID(0), MuonStartT(0), MuonEndT(0)
           , MuonStartX(0), MuonStartY(0), MuonStartZ(0)
           , MuonEndX(0), MuonEndY(0), MuonEndZ(0)
+          , MuonStartPx(0), MuonStartPy(0), MuonStartPz(0)
           , ParentPID(0), ParentStartT(0), ParentEndT(0)
           , ParentStartX(0), ParentStartY(0), ParentStartZ(0)
           , ParentEndX(0), ParentEndY(0), ParentEndZ(0)
+          , ParentStartPx(0), ParentStartPy(0), ParentStartPz(0)      
+          , ParentEndPx(0), ParentEndPy(0), ParentEndPz(0)		  
 	  {}
 
     MuonStop(int runID, int subrunID, long long eventID, const SimParticle& particle) :
@@ -79,9 +92,12 @@ namespace mu2e {
 	  , MuonPID(particle.pdgId()), MuonStartT(particle.startGlobalTime()), MuonEndT(particle.endGlobalTime())
 	  , MuonStartX(particle.startPosition().x()), MuonStartY(particle.startPosition().y()), MuonStartZ(particle.startPosition().z()) 
           , MuonEndX(particle.endPosition().x()), MuonEndY(particle.endPosition().y()), MuonEndZ(particle.endPosition().z())
-          , ParentPID(particle.parent()->pdgId()), ParentStartT(particle.parent()->startGlobalTime()), ParentEndT(particle.parent()->endGlobalTime())
+          , MuonStartPx(particle.startMomentum().x()), MuonStartPy(particle.startMomentum().y()), MuonStartPz(particle.startMomentum().z())
+  	  , ParentPID(particle.parent()->pdgId()), ParentStartT(particle.parent()->startGlobalTime()), ParentEndT(particle.parent()->endGlobalTime())
           , ParentStartX(particle.parent()->startPosition().x()), ParentStartY(particle.parent()->startPosition().y()), ParentStartZ(particle.parent()->startPosition().z())
           , ParentEndX(particle.parent()->endPosition().x()), ParentEndY(particle.parent()->endPosition().y()), ParentEndZ(particle.parent()->endPosition().z())
+          , ParentStartPx(particle.parent()->startMomentum().x()), ParentStartPy(particle.parent()->startMomentum().y()), ParentStartPz(particle.parent()->startMomentum().z())
+          , ParentEndPx(particle.parent()->endMomentum().x()), ParentEndPy(particle.parent()->endMomentum().y()), ParentEndPz(particle.parent()->endMomentum().z())
 	  {}
 
 
@@ -257,7 +273,7 @@ namespace mu2e {
   void myStoppedParticlesFinder::beginJob() {
 
     art::ServiceHandle<art::TFileService> tfs;
-    static const char branchDesc[] = "RunID/I:SubRunID/I:EventID/L:MuonPID/L:MuonStartT/F:MuonEndT/F:MuonStartX/F:MuonStartY/F:MuonStartZ/F:MuonEndX/F:MuonEndY/F:MuonEndZ/F:ParentPID/L:ParentStartT/F:ParentEndT/F:ParentStartX/F:ParentStartY/F:ParentStartZ/F:ParentEndX/F:ParentEndY/F:ParentEndZ/F";
+    static const char branchDesc[] = "RunID/I:SubRunID/I:EventID/L:MuonPID/I:MuonStartT/F:MuonEndT/F:MuonStartX/F:MuonStartY/F:MuonStartZ/F:MuonEndX/F:MuonEndY/F:MuonEndZ/F:MuonStartPx/F:MuonStartPy/F:MuonStartPz/F:ParentPID/I:ParentStartT/F:ParentEndT/F:ParentStartX/F:ParentStartY/F:ParentStartZ/F:ParentEndX/F:ParentEndY/F:ParentEndZ/F:ParentStartPx/F:ParentStartPy/F:ParentStartPz/F:ParentEndPx/F:ParentEndPy/F:ParentEndPz/F";
     nt_ = tfs->make<TTree>( "nt", "MuonStop ntuple");
     nt_->Branch("hits", &hit_, branchDesc);
 
@@ -314,17 +330,22 @@ namespace mu2e {
 
           if(materialAccepted(material)) {
             ++numRequestedMateralStops_;
-            //output->emplace_back(ih, particle.id().asUint());
+            output->emplace_back(ih, particle.id().asUint());
 
            if(particle.hasParent()) 
 	  {	   
 	   Parent= particle.parent();
 	   std::cout<<"Parent : "<<Parent->pdgId()<<", ("<<
-           Parent->startPosition().x()<<", "<<Parent->startPosition().y()<<", "<<Parent->startPosition().z()<<") " <<
+           Parent->startPosition().x()<<", "<<Parent->startPosition().y()<<", "<<Parent->startPosition().z()<<") " << Parent->startGlobalTime() <<
 	   std::endl; 
 
            hit_ = MuonStop(event.run(), event.subRun(), event.event(), particle);
-           nt_->Fill();
+
+           std::cout<<"Parent : "<<hit_.ParentPID<<", ("<<
+           hit_.ParentStartX<<", "<<hit_.ParentStartY<<", "<<hit_.ParentStartZ<<") " << hit_.ParentStartT<<
+           std::endl;
+
+	   nt_->Fill();
           }
            else std::cout<<"Error, Muon no Parents"<<std::endl;
 
