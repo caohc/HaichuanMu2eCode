@@ -1,0 +1,164 @@
+#
+# Re-sample StepPointMCs from VD116 to STM.
+#
+# original author: Yuri Oksuzian, 2019
+# Updated for MDC2020 (DetectorSteps): D. Brown
+# Updated for STM studies: Pawel Plesniak
+
+#include "Offline/fcl/standardServices.fcl"
+#include "Offline/CommonMC/fcl/prolog.fcl"
+#include "Production/JobConfig/common/prolog.fcl"
+#include "Production/JobConfig/pileup/prolog.fcl"
+#include "Offline/Analyses/fcl/prolog.fcl"
+
+process_name: STMUpstreamResamplerdeposit
+
+source: {
+  module_type : EmptyEvent
+}
+
+services : @local::Services.Sim
+physics: {
+  producers : {
+    @table::Common.producers
+    @table::Pileup.producers
+
+    extractVD116 : {
+      module_type : STMUpstreamResamplingProducer
+      VD116StepPointMCsTag : "stmResampler:"
+      verbose : false
+    }
+
+    LaBrDetHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "stmResampler", "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:LaBrDet" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+    HPGeDetHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "stmResampler", "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:HPGeDet" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+    STMVDHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "stmResampler", "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:virtualdetector" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+  }
+
+  filters : {
+    @table::Common.filters
+    @table::Pileup.filters
+  }
+
+  analyzers : {
+    @table::Common.analyzers
+    countVDs : {
+      module_type : CountVDHits
+      StepPointMCsTag : "g4run:viritualdetector"
+      enableVDs : [88, 89, 90, 100, 101, 116]
+      verbose : true
+    }
+
+
+    LaBrEnergyDeposits : {
+      module_type : STMDepositEnergy
+      stepPointMCTag : "g4run:LaBrDet"
+      verboseLevel : 0
+      saveToTree : true
+      treeName : "LaBrEnergyDeposits"
+      groupByVolume : true
+      outputFileName : "LaBrEnergyAnalysis.root" 
+    }
+
+    HPGeEnergyDeposits : {
+      module_type : STMDepositEnergy
+      stepPointMCTag : "g4run:HPGeDet"
+      verboseLevel : 0
+      saveToTree : true
+      treeName : "HPGeEnergyDeposits"
+      groupByVolume : true
+      outputFileName : "HPGeEnergyAnalysis.root"
+    }
+
+  }
+  # TODO BEFORE NEXT CAMPAIGN - put extractVD116 and STMDetHits into stmResamplerSequence
+  STMCompressedPath : [ @sequence::Pileup.stmResamplerSequence, extractVD116, @sequence::Common.g4Sequence, LaBrDetHits, HPGeDetHits, STMVDHits ] # TODO - remove stmResampler from prolog.fcl
+  trigger_paths: [ STMCompressedPath ]
+  outPathCompressed : [ genCountLogger, LaBrEnergyDeposits, HPGeEnergyDeposits, CompressedOutput ]
+  end_paths: [ outPathCompressed ]
+}
+
+outputs: {
+  CompressedOutput : {
+    module_type: RootOutput
+    outputCommands : [
+      "drop *_*_*_*",
+      "keep mu2e::GenEventCount_*_*_*", 
+      "keep mu2e::GenParticles_*_*_*",
+      "keep art::EventIDs_*_*_*", 
+      "keep mu2e::StepPointMCs_LaBrDetHits_*_*",
+      "keep mu2e::SimParticlemv_LaBrDetHits_*_*",
+      "keep mu2e::StepPointMCs_HPGeDetHits_*_*",
+      "keep mu2e::SimParticlemv_HPGeDetHits_*_*",
+      "keep mu2e::StepPointMCs_STMVDHits_*_*",
+      "keep mu2e::SimParticlemv_STMVDHits_*_*"
+    ]
+    fileName : "dts.owner.CompressedSTMData.version.sequencer.art"
+  }
+}
+# Point Mu2eG4 to the pre-simulated data
+physics.producers.g4run.inputs: {
+  primaryType: "StepPoints"
+  primaryTag: "extractVD116"
+  inputMCTrajectories: ""
+  simStageOverride: 2
+  inputPhysVolumeMultiInfo: "stmResampler"
+  updateEventLevelVolumeInfos: {
+    input: "stmResampler:eventlevel"
+    outInstance: "eventlevel"
+  }
+}
+# copy over VD hits
+#physics.producers.g4run.SDConfig.preSimulatedHits:  ["stmResampler:"]
+#include "Production/JobConfig/common/epilog.fcl"
+#include "Production/JobConfig/pileup/epilog.fcl"
+
+physics.producers.g4run.SDConfig.enableSD: [virtualdetector, LaBrDet, HPGeDet]
+physics.producers.g4run.Mu2eG4CommonCut: {}
