@@ -1,0 +1,163 @@
+#include "Offline/fcl/standardServices.fcl"
+#include "Offline/CommonMC/fcl/prolog.fcl"
+#include "Production/JobConfig/common/prolog.fcl"
+#include "Production/JobConfig/pileup/prolog.fcl"
+#include "Offline/Analyses/fcl/prolog.fcl"
+
+process_name: STMSignal
+
+source : {
+   module_type : EmptyEvent
+   maxEvents : 100000
+}
+
+services : @local::Services.Sim
+physics: {
+  producers : {
+    @table::Common.producers
+    @table::Pileup.producers
+
+  generate: {
+    module_type : PhotonGun
+
+    x: -3863.4
+    y: 0.0
+    z: 37690.0
+    px: 0.0
+    py: 0.0
+    E: 1.809
+    }
+
+
+
+    LaBrDetHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:LaBrDet" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+    HPGeDetHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:HPGeDet" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+    STMVDHits : {
+      module_type : CompressDetStepMCs
+      strawGasStepTag : ""
+      caloShowerStepTag : ""
+      surfaceStepTag : ""
+      crvStepTag : ""
+      simParticleTags : [ "g4run" ]
+      debugLevel : 0
+      stepPointMCTags : [ "g4run:virtualdetector" ]
+      compressionOptions : {
+        @table::DetStepCompression.extraCompression # remove some intermediate genealogy steps
+        stepPointMCCompressionLevel : "noCompression"
+        keepNGenerations : 1 # only keep SimParticles producing DetectorSteps and their direct parents
+      }
+      mcTrajectoryTag : "" # no MC Trajectories
+    }
+
+  }
+
+
+  filters : {
+    @table::Common.filters
+    @table::Pileup.filters
+  }
+
+  analyzers : {
+    @table::Common.analyzers
+
+    countVDs : {
+      module_type : CountVDHits
+      StepPointMCsTag : "g4run:viritualdetector"
+      enableVDs : [88, 89, 90, 100, 101, 116]
+      verbose : true
+    }
+
+    LaBrEnergyDeposits : {
+      module_type : STMDepositEnergySignal
+      stepPointMCTag : "g4run:LaBrDet"
+      verboseLevel : 0
+      saveToTree : true
+      treeName : "LaBrEnergyDeposits"
+      groupByVolume : true
+      outputFileName : "Result/LaBr_1809_Left.root" 
+    }
+
+    HPGeEnergyDeposits : {
+      module_type : STMDepositEnergySignal
+      stepPointMCTag : "g4run:HPGeDet"
+      verboseLevel : 0
+      saveToTree : true
+      treeName : "HPGeEnergyDeposits"
+      groupByVolume : true
+      outputFileName : "Result/HPGe_1809_Left.root"
+    }
+
+  }
+  # TODO BEFORE NEXT CAMPAIGN - put extractVD116 and STMDetHits into stmResamplerSequence
+  STMCompressedPath : [generate, @sequence::Common.g4Sequence, LaBrDetHits, HPGeDetHits] # TODO - remove stmResampler from prolog.fcl
+  trigger_paths: [ STMCompressedPath ]
+  outPathCompressed : [ LaBrEnergyDeposits, HPGeEnergyDeposits, CompressedOutput ]
+  end_paths: [ outPathCompressed ]
+}
+
+outputs: {
+  CompressedOutput : {
+    module_type: RootOutput
+    outputCommands : [
+      "drop *_*_*_*",
+      "keep mu2e::GenEventCount_*_*_*", 
+      "keep mu2e::GenParticles_*_*_*",
+      "keep art::EventIDs_*_*_*", 
+      "keep mu2e::StepPointMCs_LaBrDetHits_*_*",
+      "keep mu2e::SimParticlemv_LaBrDetHits_*_*",
+      "keep mu2e::StepPointMCs_HPGeDetHits_*_*",
+      "keep mu2e::SimParticlemv_HPGeDetHits_*_*"
+      #"keep mu2e::StepPointMCs_STMVDHits_*_*",
+      #"keep mu2e::SimParticlemv_STMVDHits_*_*"
+    ]
+    fileName : "Result/STMVD_1809_Left.art"
+  }
+}
+
+physics.producers.g4run.inputs: {
+  primaryType: "GenParticles"
+  primaryTag : "generate"
+}
+
+# copy over VD hits
+#include "Production/JobConfig/common/MT.fcl"
+#include "Production/JobConfig/common/epilog.fcl"
+#include "Production/JobConfig/pileup/epilog.fcl"
+
+physics.producers.g4run.SDConfig.enableSD: [virtualdetector, LaBrDet, HPGeDet]
+physics.producers.g4run.Mu2eG4CommonCut: {}
+
+services.SeedService.baseSeed         :  8
+services.SeedService.maxUniqueEngines :  20
