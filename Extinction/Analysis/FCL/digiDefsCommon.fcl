@@ -43,6 +43,12 @@ physics : {
             geomInstanceName : ""
         }
 
+         emfprocesssim: {
+            module_type: EMFProcessSim
+            inputModuleLabel  : "g4run"
+            inputInstanceName : ""
+        }
+
          emfdrawsim: {
             module_type: EMFDetDrawSim
             inputModuleLabel  : "g4run"
@@ -72,7 +78,7 @@ physics : {
     tprint : [ pixelDigitization ]
 
     //eprint: [ vdprint, emfSimHits, emfprinttruth, hitValidation, emfRawHits ]
-    eprint: [ hitValidation, emfSimHits, emfdrawsim,emfdrawraw, emfRawHits, emfprintraw ]
+    eprint: [ hitValidation, emfSimHits, emfprocesssim, emfdrawraw, emfRawHits, emfprintraw ]
     out : [ FullOutput ]
 
     trigger_paths  : [tprint]

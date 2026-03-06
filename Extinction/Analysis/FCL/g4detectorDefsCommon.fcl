@@ -101,6 +101,11 @@ physics : {
             inputInstanceName : ""
         }
 
+        emfprocesssim: {
+            module_type: EMFProcessSim
+            inputModuleLabel  : "g4run"
+            inputInstanceName : ""
+        }
 
         emfSimHits: {
             module_type: EMFDetHistSimHits
@@ -113,7 +118,7 @@ physics : {
     //    gm  : [ geom ]
 
     // eprint: [ vdprint, emfprintsim, emfSimHits ]
-    eprint: [ emfSimHits, emfprintsim, emfdrawsim ]
+    eprint: [ emfSimHits, emfprintsim, emfprocesssim ]
     out : [ FullOutput ]
 
     trigger_paths: [ tprint ]
