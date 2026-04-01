@@ -1,0 +1,81 @@
+# Minimal job to convert Source/Gamma.root into an art file that can be used
+# by STMUpstreamResampler_deposit.fcl through the stmResampler ResamplingMixer.
+#
+# Important limitation:
+# Gamma.root is a flat TNtuple, so the original Mu2e event grouping is gone.
+# This job packs sequential TNtuple rows into art events using hitsPerEvent.
+# The default is one hit per art event.
+
+#include "Offline/fcl/standardServices.fcl"
+#include "Offline/CommonMC/fcl/prolog.fcl"
+
+process_name: BeamToVD116
+
+source: {
+  module_type: EmptyEvent
+  maxEvents: 252192
+}
+
+services: {
+  @table::Services.Core
+  RandomNumberGenerator: { defaultEngineKind: "MixMaxRng" }
+  SeedService: {
+    policy: "autoIncrement"
+    baseSeed: 12345
+    maxUniqueEngines: 100
+  }
+  Mu2eG4Helper: {}
+}
+
+physics: {
+  producers: {
+    protonTimeOffset: @local::CommonMC.protonTimeOffset
+
+    # This label must match Production/JobConfig/pileup/STM/prolog.fcl so that
+    # stmResampler can consume GenParticles/SimParticlemv/StepPointMCs from the
+    # secondary input stream.
+    compressDetStepMCsSTM: {
+      module_type: VD116TNtupleToArt
+      rootFile: "Source/Gamma.root"
+      treeName: "nt"
+      hitsPerEvent: 1
+      maxRows: -1
+      verbose: true
+    }
+
+    # This label must stay "g4run" so that the STM ResamplingMixer can find:
+    #   PhysicalVolumeInfomvs_g4run
+    g4run: {
+      module_type: VD116VolumeInfoProducer
+      volumeId: 116
+      volumeName: "VirtualDetector"
+      materialName: "G4_Galactic"
+    }
+
+    genCounter: { module_type: GenEventCounter }
+  }
+
+  makeArtPath: [ genCounter, protonTimeOffset, compressDetStepMCsSTM, g4run ]
+  trigger_paths: [ makeArtPath ]
+
+  outPath: [ PrimaryOutput ]
+  end_paths: [ outPath ]
+}
+
+outputs: {
+  PrimaryOutput: {
+    module_type: RootOutput
+    fileName: "Source/VD116Gamma.art"
+    outputCommands: [
+      "drop *_*_*_*",
+      # Keep product names matched to Production/JobConfig/pileup/STM/prolog.fcl
+      "keep art::EventIDs_*_*_*",
+      "keep mu2e::GenParticles_*_*_*",
+      "keep mu2e::GenEventCount_*_*_*",
+      "keep mu2e::StepPointMCs_compressDetStepMCsSTM_*_*",
+      "keep mu2e::SimParticlemv_compressDetStepMCsSTM_*_*",
+      "keep mu2e::SimTimeOffset_*_*_*",
+      "keep mu2e::PhysicalVolumeInfomvs_g4run_*_*"
+    ]
+  }
+}
