@@ -103,8 +103,6 @@ physics: {
       module_type : STMDepositEnergySignal
       stepPointMCTag : "g4run:LaBrDet"
       verboseLevel : 0
-      saveToTree : true
-      treeName : "LaBrEnergyDeposits"
       groupByVolume : true
       outputFileName : "Result/LaBr_66_Left.root" 
     }
@@ -113,8 +111,6 @@ physics: {
       module_type : STMDepositEnergySignal
       stepPointMCTag : "g4run:HPGeDet"
       verboseLevel : 0
-      saveToTree : true
-      treeName : "HPGeEnergyDeposits"
       groupByVolume : true
       outputFileName : "Result/HPGe_66_Left.root"
     }
